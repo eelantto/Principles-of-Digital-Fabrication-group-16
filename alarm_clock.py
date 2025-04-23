@@ -123,3 +123,12 @@ def set_alarm():
             utime.sleep(0.2)
         lcd.move_to(0, 1)
         lcd.putstr(f"Set {alarm_hour:02}:{alarm_min:02}")
+
+alarm_hr = 7
+alarm_min = 0
+alarm_done = False
+
+lcd.clear()
+lcd.putstr("Alarm Setup")
+set_alarm()
+lcd.clear()
