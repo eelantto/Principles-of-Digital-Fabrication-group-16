@@ -63,18 +63,27 @@ class RTC:
         return ((dec // 10) << 4) + (dec % 10)
 
     def get_time(self):
-        raw = self.i2c.readfrom_mem(self.addr, 0x00, 3)
-        seconds = self._bcd2dec(raw[0] & 0x7F)
-        minutes = self._bcd2dec(raw[1])
-        hours = self._bcd2dec(raw[2])
-        return hours, minutes, seconds
+    raw = self.i2c.readfrom_mem(self.addr, 0x00, 7)
+    seconds = self._bcd2dec(raw[0] & 0x7F)
+    minutes = self._bcd2dec(raw[1])
+    hours = self._bcd2dec(raw[2])
+    weekday = self._bcd2dec(raw[3])
+    day = self._bcd2dec(raw[4])
+    month = self._bcd2dec(raw[5])
+    year = self._bcd2dec(raw[6])  
+    return year, month, day, weekday, hours, minutes, seconds
 
-    def set_time(self, hours, minutes, seconds):
-        self.i2c.writeto_mem(self.addr, 0x00, bytes([
-            self._dec2bcd(seconds),
-            self._dec2bcd(minutes),
-            self._dec2bcd(hours)
-        ]))
+    def set_time(self, year, month, day, weekday, hours, minutes, seconds):
+    year_short = year % 100
+    self.i2c.writeto_mem(self.addr, 0x00, bytes([
+        self._dec2bcd(seconds),
+        self._dec2bcd(minutes),
+        self._dec2bcd(hours),
+        self._dec2bcd(weekday),
+        self._dec2bcd(day),
+        self._dec2bcd(month),
+        self._dec2bcd(year_short)
+    ]))
 
     
 # Measuring distance (by using ultrasonic sensor)
