@@ -63,34 +63,35 @@ class RTC:
         return ((dec // 10) << 4) + (dec % 10)
 
     def get_time(self):
-    raw = self.i2c.readfrom_mem(self.addr, 0x00, 7)
-    seconds = self._bcd2dec(raw[0] & 0x7F)
-    minutes = self._bcd2dec(raw[1])
-    hours = self._bcd2dec(raw[2])
-    weekday = self._bcd2dec(raw[3])
-    day = self._bcd2dec(raw[4])
-    month = self._bcd2dec(raw[5])
-    year = self._bcd2dec(raw[6])  
-    return year, month, day, weekday, hours, minutes, seconds
+        raw = self.i2c.readfrom_mem(self.addr, 0x00, 7)
+        seconds = self._bcd2dec(raw[0] & 0x7F)
+        minutes = self._bcd2dec(raw[1])
+        hours = self._bcd2dec(raw[2])
+        weekday = self._bcd2dec(raw[3])
+        day = self._bcd2dec(raw[4])
+        month = self._bcd2dec(raw[5])
+        year = self._bcd2dec(raw[6])
+        return year, month, day, weekday, hours, minutes, seconds
+
 
     def set_time(self, year, month, day, weekday, hours, minutes, seconds):
-    year_short = year % 100
-    self.i2c.writeto_mem(self.addr, 0x00, bytes([
-        self._dec2bcd(seconds),
-        self._dec2bcd(minutes),
-        self._dec2bcd(hours),
-        self._dec2bcd(weekday),
-        self._dec2bcd(day),
-        self._dec2bcd(month),
-        self._dec2bcd(year_short)
-    ]))
+        year_short = year % 100
+        self.i2c.writeto_mem(self.addr, 0x00, bytes([
+            self._dec2bcd(seconds),
+            self._dec2bcd(minutes),
+            self._dec2bcd(hours),
+            self._dec2bcd(weekday),
+            self._dec2bcd(day),
+            self._dec2bcd(month),
+            self._dec2bcd(year_short)
+        ]))
 
     
 class Motor:
     def __init__(self, en_pin, pin0, pin1):
-       self.en_pin = PWM(en_pin);
-       self.pin0 = pin0;
-       self.pin1 = pin1;
+       self.en_pin = PWM(en_pin)
+       self.pin0 = pin0
+       self.pin1 = pin1
        self.en_pin.freq(512)
        
     def drive(self, val): #1.0 full forward, -1.0 full backward, 0.0 off
