@@ -33,24 +33,34 @@ class LCD:
         for c in s:
             self.cmd(ord(c), 1)
 
-
-# RTC
+#RTC
 class RTC:
-    def __init__(self, i2c, addr=0x52):
+    def __init__(self, i2c, addr=0x68):
         self.i2c = i2c
         self.addr = addr
-    
-    def _bcd2dec(self, bcd):
-        return ((bcd >> 4) * 10) + (bcd & 0x0F)
-    
-    def get_time(self):
-        raw = self.i2c.readfrom_mem(self.addr, 0x00, 3)
-        sec = self._bcd2dec(raw[0] & 0x7F)
-        min = self._bcd2dec(raw[1] & 0x7F)
-        hour = self._bcd2dec(raw[2] & 0x3F)
-        return hour, min
-    
 
+    def _bcd2dec(self, bcd):
+        return (bcd >> 4) * 10 + (bcd & 0x0F)
+
+    def _dec2bcd(self, dec):
+        return ((dec // 10) << 4) + (dec % 10)
+
+    def get_time(self):
+        raw = self.i2c.readfrom_mem(self.addr, 0x00, 7)
+        seconds = self._bcd2dec(raw[0] & 0x7F)
+        minutes = self._bcd2dec(raw[1])
+        hours = self._bcd2dec(raw[2])
+        return hours, minutes, seconds
+
+    def set_time(self, hours, minutes, seconds):
+        self.i2c.writeto_mem(self.addr, 0x00, bytes([
+            self._dec2bcd(seconds),
+            self._dec2bcd(minutes),
+            self._dec2bcd(hours),
+            0, 0, 0, 0  # day, date, month, year (ignored)
+        ]))
+
+    
 # Measuring distance (by using ultrasonic sensor)
 def get_distance_cm():
     trig.low()
@@ -67,7 +77,7 @@ def get_distance_cm():
 
 
 i2c = I2C(0, scl=Pin(1), sda=Pin(0))
-lcd = LCD(i2c, 0x3E, 2, 16)
+lcd = LCD(i2c, 0x27, 4, 20)
 rtc = RTC(i2c)
 
 
