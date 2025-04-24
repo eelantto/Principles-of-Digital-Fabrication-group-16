@@ -2,55 +2,80 @@ from machine import Pin, I2C, PWM, RTC
 import utime
 
 class LCD:
-    def __init__(self, i2c, addr, rows, cols):
-        self.i2c = i2c
-        self.addr = addr
-        self.rows = rows
-        self.cols = cols
+    def __init__(self, rs, en, d4, d5, d6, d7):
+        self.rs = Pin(rs, Pin.OUT)
+        self.en = Pin(en, Pin.OUT)
+        self.data_pins = [Pin(d4, Pin.OUT), Pin(d5, Pin.OUT),
+                          Pin(d6, Pin.OUT), Pin(d7, Pin.OUT)]
         self.init()
-    
-    def init(self):
-        for cmd in [0x33, 0x32, 0x28, 0x0C, 0x06, 0x01]:
-            self.cmd(cmd)
-            utime.sleep_ms(2)
-    
-    def cmd(self, cmd, mode=0):
-        high = mode | (cmd & 0xF0) | 0x08
-        low = mode | ((cmd << 4) & 0xF0) | 0x08
-        for val in [high | 4, high, low | 4, low]:
-            self.i2c.writeto(self.addr, bytes([val]))
-            
-        utime.sleep_us(50)
 
-    def move_to(self, col, row):
-        addr_begin = [0, 64, 20, 84] #I have no idea where these come from, but these works with 4x20 display
-        addr = 0x80 + addr_begin[row] + col
-        self.cmd(addr)
+    def pulse_enable(self):
+        self.en.low()
+        utime.sleep_us(1)
+        self.en.high()
+        utime.sleep_us(1)
+        self.en.low()
+        utime.sleep_us(100)
+
+    def send(self, data, rs_mode):
+        self.rs.value(rs_mode)
+        for i in range(4):
+            self.data_pins[i].value((data >> (4 + i)) & 0x01)
+        self.pulse_enable()
+        for i in range(4):
+            self.data_pins[i].value((data >> i) & 0x01)
+        self.pulse_enable()
+
+    def cmd(self, data):
+        self.send(data, 0)
+
+    def putstr(self, s):
+        for c in s:
+            self.send(ord(c), 1)
 
     def clear(self):
         self.cmd(0x01)
         utime.sleep_ms(2)
 
-    def putstr(self, s):
-        for c in s:
-            self.cmd(ord(c), 1)
+    def move_to(self, col, row):
+        row_offsets = [0x00, 0x40]
+        self.cmd(0x80 | (col + row_offsets[row]))
+
+    def init(self):
+        utime.sleep_ms(50)
+        self.send(0x33, 0)
+        self.send(0x32, 0)
+        self.send(0x28, 0)
+        self.send(0x0C, 0)
+        self.send(0x06, 0)
+        self.clear()
 
 
-# RTC
-#class RTC:
-#    def __init__(self, i2c, addr=0x52):
-#        self.i2c = i2c
-#        self.addr = addr
-    
-#    def _bcd2dec(self, bcd):
-#        return ((bcd >> 4) * 10) + (bcd & 0x0F)
-    
-#    def get_time(self):
-#        raw = self.i2c.readfrom_mem(self.addr, 0x00, 3)
-#        sec = self._bcd2dec(raw[0] & 0x7F)
-#        min = self._bcd2dec(raw[1] & 0x7F)
-#        hour = self._bcd2dec(raw[2] & 0x3F)
-#        return hour, min
+class RTC:
+    def __init__(self, i2c, addr=0x68):
+        self.i2c = i2c
+        self.addr = addr
+
+    def _bcd2dec(self, bcd):
+        return (bcd >> 4) * 10 + (bcd & 0x0F)
+
+    def _dec2bcd(self, dec):
+        return ((dec // 10) << 4) + (dec % 10)
+
+    def get_time(self):
+        raw = self.i2c.readfrom_mem(self.addr, 0x00, 3)
+        seconds = self._bcd2dec(raw[0] & 0x7F)
+        minutes = self._bcd2dec(raw[1])
+        hours = self._bcd2dec(raw[2])
+        return hours, minutes, seconds
+
+    def set_time(self, hours, minutes, seconds):
+        self.i2c.writeto_mem(self.addr, 0x00, bytes([
+            self._dec2bcd(seconds),
+            self._dec2bcd(minutes),
+            self._dec2bcd(hours)
+        ]))
+
     
 class Motor:
     def __init__(self, en_pin, pin0, pin1):
@@ -204,7 +229,7 @@ def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
 def main():
     
     i2c = I2C(0, scl=machine.Pin(17), sda=machine.Pin(16))
-    lcd = LCD(i2c, 0x27, 4, 20)
+    lcd = LCD(rs=2, en=3, d4=4, d5=5, d6=6, d7=7)
     buttons = Buttons(machine.Pin(9, Pin.IN), machine.Pin(8, Pin.IN), machine.Pin(7, Pin.IN))
     
     motor0 = Motor(machine.Pin(13), machine.Pin(12, Pin.OUT), machine.Pin(11, Pin.OUT))
@@ -213,7 +238,7 @@ def main():
     buzzer = Buzzer(machine.Pin(6, Pin.OUT))
     sonic = Ultrasonic(machine.Pin(15, Pin.OUT), machine.Pin(14, Pin.IN))
     
-    rtc = machine.RTC()
+    rtc = RTC(i2c)
         
     alarm_enabled = False
     alarm_hours, alarm_minutes, alarm_seconds = (0, 0, 0)
@@ -255,12 +280,11 @@ def main():
                 lcd.move_to(0, 1)
                 lcd.putstr("Alarm: {:02d}:{:02d}:{:02d}".format(alarm_hours, alarm_minutes, alarm_seconds))
             
-        if (alarm_hours == hours and alarm_minutes == minutes and alarm_seconds == seconds):
+        if alarm_enabled and (hours, minutes, seconds) == (alarm_hours, alarm_minutes, alarm_seconds):
             alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic);
-        
+            alarm_enabled = False  
         utime.sleep_ms(10)
         
         
 if __name__ == "__main__":
     main()
-
