@@ -223,7 +223,7 @@ def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
 def main():
     
     i2c = I2C(0, scl=machine.Pin(17), sda=machine.Pin(16))
-    lcd = LCD(rs=2, en=3, d4=4, d5=5, d6=6, d7=7)
+    lcd = LCD(i2c, 0x27, 4, 20)
     buttons = Buttons(machine.Pin(9, Pin.IN), machine.Pin(8, Pin.IN), machine.Pin(7, Pin.IN))
     
     motor0 = Motor(machine.Pin(13), machine.Pin(12, Pin.OUT), machine.Pin(11, Pin.OUT))
