@@ -23,7 +23,7 @@ class LCD:
         utime.sleep_us(50)
 
     def move_to(self, col, row):
-        addr_begin = [0, 64, 20, 84] #I have no idea where these come from, but these works with 4x20 display
+        addr_begin = [0, 64, 20, 84] 
         addr = 0x80 + addr_begin[row] + col
         self.cmd(addr)
 
