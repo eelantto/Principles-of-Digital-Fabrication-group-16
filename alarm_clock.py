@@ -20,9 +20,12 @@ class LCD:
         low = mode | ((cmd << 4) & 0xF0) | 0x08
         for val in [high | 4, high, low | 4, low]:
             self.i2c.writeto(self.addr, bytes([val]))
+        
+        utime.sleep_us(50)
 
     def move_to(self, col, row):
-        addr = 0x80 + (0x40 * row) + col
+        addr_begin = [0, 64, 20, 84] #I have no idea where these come from, but these works with 4x20 display
+        addr = 0x80 + addr_begin[row] + col
         self.cmd(addr)
 
     def clear(self):
@@ -33,24 +36,42 @@ class LCD:
         for c in s:
             self.cmd(ord(c), 1)
 
-
-# RTC
+#RTC
 class RTC:
-    def __init__(self, i2c, addr=0x52):
+    def __init__(self, i2c, addr=0x68):
         self.i2c = i2c
         self.addr = addr
-    
-    def _bcd2dec(self, bcd):
-        return ((bcd >> 4) * 10) + (bcd & 0x0F)
-    
-    def get_time(self):
-        raw = self.i2c.readfrom_mem(self.addr, 0x00, 3)
-        sec = self._bcd2dec(raw[0] & 0x7F)
-        min = self._bcd2dec(raw[1] & 0x7F)
-        hour = self._bcd2dec(raw[2] & 0x3F)
-        return hour, min
-    
 
+    def _bcd2dec(self, bcd):
+        return (bcd >> 4) * 10 + (bcd & 0x0F)
+
+    def _dec2bcd(self, dec):
+        return ((dec // 10) << 4) + (dec % 10)
+
+    def get_time(self):
+        raw = self.i2c.readfrom_mem(self.addr, 0x00, 7)
+        seconds = self._bcd2dec(raw[0] & 0x7F)
+        minutes = self._bcd2dec(raw[1])
+        hours = self._bcd2dec(raw[2])
+        weekday = self._bcd2dec(raw[3])
+        day = self._bcd2dec(raw[4])
+        month = self._bcd2dec(raw[5])
+        year = self._bcd2dec(raw[6])  
+        return year, month, day, weekday, hours, minutes, seconds
+
+    def set_time(self, year, month, day, weekday, hours, minutes, seconds):
+        year_short = year % 100
+        self.i2c.writeto_mem(self.addr, 0x00, bytes([
+            self._dec2bcd(seconds),
+            self._dec2bcd(minutes),
+            self._dec2bcd(hours),
+            self._dec2bcd(weekday),
+            self._dec2bcd(day),
+            self._dec2bcd(month),
+            self._dec2bcd(year_short)
+        ]))
+
+    
 # Measuring distance (by using ultrasonic sensor)
 def get_distance_cm():
     trig.low()
@@ -67,7 +88,7 @@ def get_distance_cm():
 
 
 i2c = I2C(0, scl=Pin(1), sda=Pin(0))
-lcd = LCD(i2c, 0x3E, 2, 16)
+lcd = LCD(i2c, 0x27, 4, 20)
 rtc = RTC(i2c)
 
 

@@ -24,7 +24,7 @@ class LCD:
         utime.sleep_ms(2)
 
     def move_to(self, col, row):
-        addr_begin = [0, 64, 20, 84] #I have no idea where these come from, but these works with 4x20 display
+        addr_begin = [0, 64, 20, 84] 
         addr = 0x80 + addr_begin[row] + col
         self.cmd(addr)
 
@@ -76,9 +76,9 @@ class LCD:
     
 class Motor:
     def __init__(self, en_pin, pin0, pin1):
-       self.en_pin = PWM(en_pin);
-       self.pin0 = pin0;
-       self.pin1 = pin1;
+       self.en_pin = PWM(en_pin)
+       self.pin0 = pin0
+       self.pin1 = pin1
        self.en_pin.freq(512)
        
     def drive(self, val): #1.0 full forward, -1.0 full backward, 0.0 off
