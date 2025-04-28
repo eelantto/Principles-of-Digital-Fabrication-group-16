@@ -36,7 +36,7 @@ class LCD:
         for c in s:
             self.cmd(ord(c), 1)
 
-#We could't use DS1307 RTC module, because its supply voltage is 4.5-5.5v and its SDA and SCL has 10k pull-ups to Vcc.
+#We couldn't use DS1307 RTC module, because its supply voltage is 4.5-5.5v and its SDA and SCL has 10k pull-ups to Vcc.
 #Without physical modification to module, its not safe to use with Picos 3.3v GPIO.
 #class RTC:
 #    def __init__(self, i2c, addr=0x68):
@@ -208,15 +208,15 @@ def time_dialog(lcd, buttons, hours, minutes, seconds, show_str = "", offset_x =
             numbers[selected_number] = (numbers[selected_number]+1) % numbers_mod[selected_number];
 
 
-def get_clock(rtc):
-    year, month, day, weekday, hours, minutes, seconds = rtc.get_time()
-    return (hours, minutes, seconds)
+ def get_clock(rtc):
+     year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
+     return (hours, minutes, seconds)
+ 
+ def set_clock(rtc, new_hours, new_minutes, new_seconds):
+     year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
+     
+     rtc.datetime((year, month, day, weekday, new_hours, new_minutes, new_seconds, subseconds))
 
-def set_clock(rtc, new_hours, new_minutes, new_seconds):
-    year, month, day, weekday, hours, minutes, seconds = rtc.get_time()
-    rtc.set_time(year, month, day, weekday, new_hours, new_minutes, new_seconds)
-
-    
 
 def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
     while (not buttons.any_pressed()):
@@ -242,7 +242,7 @@ def main():
     buzzer = Buzzer(machine.Pin(6, Pin.OUT))
     sonic = Ultrasonic(machine.Pin(15, Pin.OUT), machine.Pin(14, Pin.IN))
     
-    rtc = RTC(i2c)
+    rtc = machine.RTC()
         
     alarm_enabled = False
     alarm_hours, alarm_minutes, alarm_seconds = (0, 0, 0)
@@ -287,6 +287,7 @@ def main():
         if alarm_enabled and (hours, minutes, seconds) == (alarm_hours, alarm_minutes, alarm_seconds):
             alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic);
             alarm_enabled = False  
+            
         utime.sleep_ms(10)
         
         
