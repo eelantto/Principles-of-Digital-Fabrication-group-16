@@ -197,9 +197,39 @@ def set_clock(rtc, new_hours, new_minutes, new_seconds):
     rtc.datetime((year, month, day, weekday, new_hours, new_minutes, new_seconds, subseconds))
     
 
+
 def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
+    
+    turn_right = True
+    
     while (not buttons.any_pressed()):
-        #there buzzer, motor control etc.
+        #there buzzer, motor control etc
+        
+        motor0.drive(1.0)
+        motor1.drive(1.0)
+        
+        dist = sonci.get_distance_cm()
+        if (dist < 40):
+            
+            buzzer.on()
+            
+            if (turn_right):
+                motor0.drive(1.0)
+                motor1.drive(-1.0)
+                turn_right = False
+            else:
+                motor1.drive(1.0)
+                motor0.drive(-1.0)
+                turn_right = True
+                
+            utime.sleep_ms(333)
+            
+            buzzer.off()
+            
+            motor0.drive(0.0)
+            motor1.drive(0.0)
+        
+        
         
         utime.sleep_ms(10)
         pass
@@ -222,7 +252,7 @@ def main():
     sonic = Ultrasonic(machine.Pin(15, Pin.OUT), machine.Pin(14, Pin.IN))
 
     rtc = machine.RTC()
-    
+        
     alarm_enabled = False
     alarm_hours, alarm_minutes, alarm_seconds = (0, 0, 0)
     
@@ -234,34 +264,20 @@ def main():
         
         if (buttons.any_pressed()):
             buttons.wait_for_input()
-            
-            
-            choice = select_dialog(lcd, buttons, ["test motors", "test ultrasonic", "test buzzer", "exit"])
-            if (choice == "test motors"):
-                lcd.clear()
-                lcd.move_to(0, 0)
-                lcd.putstr("Testing motors")
+            choice = select_dialog(lcd, buttons, ["set alarm", "disable alarm", "set time", "exit"])
+            if (choice == "set time"):
+                hours, minutes, seconds = time_dialog(lcd, buttons, hours, minutes, seconds, show_str="Set time: ")
+                set_clock(rtc, hours, minutes, seconds)
                 
-                motor0.drive(1.0)
-                utime.sleep_ms(500)
-                motor0.drive(-1.0)
-                utime.sleep_ms(500)
-                motor0.drive(0.0)
-                motor1.drive(1.0)
-                utime.sleep_ms(500)
-                motor1.drive(-1.0)
-                utime.sleep_ms(500)
-                motor1.drive(0.0)
-            elif (choice == "test ultrasonic"):
-                dist = sonic.get_distance_cm()
-                lcd.clear()
-                lcd.move_to(0, 0)
-                lcd.putstr("Distance:  {}".format(dist))
-                utime.sleep_ms(1000)
-            elif (choice == "test buzzer"):
-                buzzer.on()
-                utime.sleep_ms(500)
-                buzzer.off()
+            elif (choice == "disable alarm"):
+                alarm_enabled = False
+                
+            elif (choice == "set alarm"):
+                if (not alarm_enabled):
+                    alarm_hours, alarm_minutes, alarm_seconds = (hours, minutes, seconds)
+        
+                alarm_hours, alarm_minutes, alarm_seconds = time_dialog(lcd, buttons, alarm_hours, alarm_minutes, alarm_seconds, show_str="Set alarm: ")
+                alarm_enabled = True
                 
             needs_redraw = True
                 
@@ -277,12 +293,12 @@ def main():
                 lcd.move_to(0, 1)
                 lcd.putstr("Alarm: {:02d}:{:02d}:{:02d}".format(alarm_hours, alarm_minutes, alarm_seconds))
             
-        if (alarm_hours == hours and alarm_minutes == minutes and alarm_seconds == seconds):
+        if alarm_enabled and (hours, minutes, seconds) == (alarm_hours, alarm_minutes, alarm_seconds):
             alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic);
-        
+            alarm_enabled = False  
+            
         utime.sleep_ms(10)
         
         
 if __name__ == "__main__":
     main()
-
