@@ -1,6 +1,5 @@
 from machine import Pin, I2C, PWM, RTC
 import utime
-import random
 
 class LCD:
     def __init__(self, i2c, addr, rows, cols):
