@@ -220,54 +220,14 @@ def set_clock(rtc, new_hours, new_minutes, new_seconds):
 
 
 def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
-    lcd.clear()
-    lcd.move_to(0, 0)
-    lcd.putstr("RUNNING!")
-    
-    buzzer.on()
-    
-    last_move_time = utime.ticks_ms()
-    move_interval = 500  
-    
-    while True:
-        if buttons.any_pressed():
-            break
-        
-        distance = sonic.get_distance_cm()
-        if 0 < distance < 15:
-            break
-        
-        if utime.ticks_diff(utime.ticks_ms(), last_move_time) > move_interval:
-            move = random.choice(["forward", "backward", "left", "right", "stop"])
-            if move == "forward":
-                motor0.drive(1.0)
-                motor1.drive(1.0)
-            elif move == "backward":
-                motor0.drive(-1.0)
-                motor1.drive(-1.0)
-            elif move == "left":
-                motor0.drive(-0.5)
-                motor1.drive(0.5)
-            elif move == "right":
-                motor0.drive(0.5)
-                motor1.drive(-0.5)
-            elif move == "stop":
-                motor0.drive(0.0)
-                motor1.drive(0.0)
-            
-            last_move_time = utime.ticks_ms()
-        
-        utime.sleep_ms(10)
-    
-    motor0.drive(0.0)
-    motor1.drive(0.0)
-    buzzer.off()
-    
-    lcd.clear()
-    lcd.move_to(0, 0)
-    lcd.putstr("STOPPED!")
-    utime.sleep_ms(1000)
-        
+     while (not buttons.any_pressed()):
+         #there buzzer, motor control etc.
+         
+         utime.sleep_ms(10)
+         pass
+     
+     while (buttons.any_pressed()):
+         utime.sleep_ms(10)
         
 
 def main():
