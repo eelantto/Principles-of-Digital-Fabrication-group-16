@@ -209,11 +209,11 @@ def time_dialog(lcd, buttons, hours, minutes, seconds, show_str = "", offset_x =
             numbers[selected_number] = (numbers[selected_number]+1) % numbers_mod[selected_number];
 
 
- def get_clock(rtc):
+def get_clock(rtc):
      year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
      return (hours, minutes, seconds)
  
- def set_clock(rtc, new_hours, new_minutes, new_seconds):
+def set_clock(rtc, new_hours, new_minutes, new_seconds):
      year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
      
      rtc.datetime((year, month, day, weekday, new_hours, new_minutes, new_seconds, subseconds))
