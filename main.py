@@ -220,14 +220,41 @@ def set_clock(rtc, new_hours, new_minutes, new_seconds):
 
 
 def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
-     while (not buttons.any_pressed()):
-         #there buzzer, motor control etc.
-         
-         utime.sleep_ms(10)
-         pass
-     
-     while (buttons.any_pressed()):
-         utime.sleep_ms(10)
+     turn_right = True
+    
+    while (not buttons.any_pressed()):
+        #there buzzer, motor control etc
+        
+        motor0.drive(1.0)
+        motor1.drive(1.0)
+        
+        dist = sonci.get_distance_cm()
+        if (dist < 40):
+            
+            buzzer.on()
+            
+            if (turn_right):
+                motor0.drive(1.0)
+                motor1.drive(-1.0)
+                turn_right = False
+            else:
+                motor1.drive(1.0)
+                motor0.drive(-1.0)
+                turn_right = True
+                
+            utime.sleep_ms(333)
+            
+            buzzer.off()
+            
+            motor0.drive(0.0)
+            motor1.drive(0.0)     
+        
+        utime.sleep_ms(10)
+        pass
+    
+    while (buttons.any_pressed()):
+        utime.sleep_ms(10)
+        
         
 
 def main():
