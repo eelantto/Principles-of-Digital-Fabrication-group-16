@@ -24,7 +24,7 @@ class LCD:
         utime.sleep_ms(2)
 
     def move_to(self, col, row):
-        addr_begin = [0, 64, 20, 84] 
+        addr_begin = [0, 64, 20, 84] #I have no idea where these come from, but these works with 4x20 display
         addr = 0x80 + addr_begin[row] + col
         self.cmd(addr)
 
@@ -36,49 +36,28 @@ class LCD:
         for c in s:
             self.cmd(ord(c), 1)
 
-#We couldn't use DS1307 RTC module, because its supply voltage is 4.5-5.5v and its SDA and SCL has 10k pull-ups to Vcc.
-#Without physical modification to module, its not safe to use with Picos 3.3v GPIO.
+
+# RTC
 #class RTC:
-#    def __init__(self, i2c, addr=0x68):
+#    def __init__(self, i2c, addr=0x52):
 #        self.i2c = i2c
 #        self.addr = addr
-
+    
 #    def _bcd2dec(self, bcd):
-#        return (bcd >> 4) * 10 + (bcd & 0x0F)
-
-#    def _dec2bcd(self, dec):
-#        return ((dec // 10) << 4) + (dec % 10)
-
+#        return ((bcd >> 4) * 10) + (bcd & 0x0F)
+    
 #    def get_time(self):
-#        raw = self.i2c.readfrom_mem(self.addr, 0x00, 7)
-#        seconds = self._bcd2dec(raw[0] & 0x7F)
-#        minutes = self._bcd2dec(raw[1])
-#        hours = self._bcd2dec(raw[2])
-#        weekday = self._bcd2dec(raw[3])
-#        day = self._bcd2dec(raw[4])
-#        month = self._bcd2dec(raw[5])
-#        year = self._bcd2dec(raw[6])
-#        return year, month, day, weekday, hours, minutes, seconds
-
-
-#    def set_time(self, year, month, day, weekday, hours, minutes, seconds):
-#        year_short = year % 100
-#        self.i2c.writeto_mem(self.addr, 0x00, bytes([
-#            self._dec2bcd(seconds),
-#            self._dec2bcd(minutes),
-#            self._dec2bcd(hours),
-#            self._dec2bcd(weekday),
-#            self._dec2bcd(day),
-#            self._dec2bcd(month),
-#            self._dec2bcd(year_short)
-#        ]))
-
+#        raw = self.i2c.readfrom_mem(self.addr, 0x00, 3)
+#        sec = self._bcd2dec(raw[0] & 0x7F)
+#        min = self._bcd2dec(raw[1] & 0x7F)
+#        hour = self._bcd2dec(raw[2] & 0x3F)
+#        return hour, min
     
 class Motor:
     def __init__(self, en_pin, pin0, pin1):
-       self.en_pin = PWM(en_pin)
-       self.pin0 = pin0
-       self.pin1 = pin1
+       self.en_pin = PWM(en_pin);
+       self.pin0 = pin0;
+       self.pin1 = pin1;
        self.en_pin.freq(512)
        
     def drive(self, val): #1.0 full forward, -1.0 full backward, 0.0 off
@@ -209,17 +188,19 @@ def time_dialog(lcd, buttons, hours, minutes, seconds, show_str = "", offset_x =
 
 
 def get_clock(rtc):
-     year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
-     return (hours, minutes, seconds)
- 
+    year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
+    return (hours, minutes, seconds)
+
 def set_clock(rtc, new_hours, new_minutes, new_seconds):
-     year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
-     
-     rtc.datetime((year, month, day, weekday, new_hours, new_minutes, new_seconds, subseconds))
+    year, month, day, weekday, hours, minutes, seconds, subseconds = rtc.datetime()
+    
+    rtc.datetime((year, month, day, weekday, new_hours, new_minutes, new_seconds, subseconds))
+    
 
 
 def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
-     turn_right = True
+    
+    turn_right = True
     
     while (not buttons.any_pressed()):
         #there buzzer, motor control etc
@@ -227,7 +208,12 @@ def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
         motor0.drive(1.0)
         motor1.drive(1.0)
         
-        dist = sonci.get_distance_cm()
+        utime.sleep_ms(100)
+        
+        motor0.drive(0.0)
+        motor1.drive(0.0)
+        
+        dist = sonic.get_distance_cm()
         if (dist < 40):
             
             buzzer.on()
@@ -246,10 +232,7 @@ def alarm_action(lcd, buttons, buzzer, motor0, motor1, sonic):
             buzzer.off()
             
             motor0.drive(0.0)
-            motor1.drive(0.0)     
-        
-        utime.sleep_ms(10)
-        pass
+            motor1.drive(0.0)
     
     while (buttons.any_pressed()):
         utime.sleep_ms(10)
@@ -260,14 +243,14 @@ def main():
     
     i2c = I2C(0, scl=machine.Pin(17), sda=machine.Pin(16))
     lcd = LCD(i2c, 0x27, 4, 20)
-    buttons = Buttons(machine.Pin(9, Pin.IN), machine.Pin(8, Pin.IN), machine.Pin(7, Pin.IN))
+    buttons = Buttons(machine.Pin(2, Pin.IN), machine.Pin(3, Pin.IN), machine.Pin(4, Pin.IN))
     
     motor0 = Motor(machine.Pin(13), machine.Pin(12, Pin.OUT), machine.Pin(11, Pin.OUT))
     motor1 = Motor(machine.Pin(18), machine.Pin(19, Pin.OUT), machine.Pin(20, Pin.OUT))
     
-    buzzer = Buzzer(machine.Pin(6, Pin.OUT))
+    buzzer = Buzzer(machine.Pin(22, Pin.OUT))
     sonic = Ultrasonic(machine.Pin(15, Pin.OUT), machine.Pin(14, Pin.IN))
-    
+
     rtc = machine.RTC()
         
     alarm_enabled = False
@@ -319,3 +302,4 @@ def main():
         
 if __name__ == "__main__":
     main()
+
