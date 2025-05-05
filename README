@@ -1,2 +1,5 @@
 README
 This repository is for our project files.
+
+main.py is program for alarm clock
+test.py is test program for testing/debugging electronics
